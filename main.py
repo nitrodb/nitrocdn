@@ -1,13 +1,15 @@
-import random
 import quart
 import orjson
 import urllib3
 import io
-import secrets
 import os
+import random
+import time
+import ulid
 from minio import Minio
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 from cdn.errors import BadData, Unauthorized, Err, NotFound
 
 load_dotenv()
@@ -61,12 +63,16 @@ async def upload(bucket_id: str):
     imgs = await quart.request.files
 
     for _, fp in imgs.items():
+        assert isinstance(fp, FileStorage)
 
         if fp.filename == '':
             raise BadData()
+        
+        ending = '.' + fp.mimetype.split('/')[1]
         fp.filename = secure_filename(fp.filename)
         try:
-            name = secrets.token_urlsafe(random.randint(3, 19)) + '-' + fp.filename
+            name = str(ulid.new())
+            name += ending
             client.put_object(
                 bucket_name=bucket_id,
                 object_name=str(name),

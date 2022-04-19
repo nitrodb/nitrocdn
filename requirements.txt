@@ -4,3 +4,4 @@ python-dotenv==0.20.0
 orjson==3.6.7
 uvicorn[standard]==0.17.6
 uvloop==0.16.0; platform_system!="Windows" # https://github.com/MagicStack/uvloop/issues/14
+ulid-py==1.1.0
