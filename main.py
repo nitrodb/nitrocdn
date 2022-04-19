@@ -4,9 +4,16 @@ import orjson
 import urllib3
 import io
 import secrets
+import os
+from minio import Minio
+from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
-from cdn.database import client, secret
 from cdn.errors import BadData, Unauthorized, Err, NotFound
+
+load_dotenv()
+
+# the secret the Rest API should use.
+secret = os.getenv('secret')
 
 try:
     import uvloop # type: ignore
@@ -36,10 +43,20 @@ app.config['MAX_CONTENT_LENGTH'] = 10 * 1000 * 1000
 app.json_encoder = ORJSONEncoder
 app.json_decoder = ORJSONDecoder
 
+client = Minio(
+    endpoint=os.getenv('host'),
+    access_key=os.getenv('access_key', ''),
+    secret_key=os.getenv('secret_key', ''),
+    secure=False
+)
+
 @app.route('/admin/upload/<bucket_id>', methods=['PUT', 'POST'])
 async def upload(bucket_id: str):
     if quart.request.headers.get('Authorization') != secret:
         raise Unauthorized()
+
+    if not client.bucket_exists(bucket_id):
+        client.make_bucket(bucket_id)
 
     imgs = await quart.request.files
 
